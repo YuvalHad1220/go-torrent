@@ -16,9 +16,23 @@ func parseTorrent(TorrentFileName string) (*Torrent, error) {
         return nil, err
     }
 
-	decoded, _ := decode(content)
 
-	fmt.Print(decoded)
+	decoded, _ := decode(content)
+	m, ok:= decoded.(map[string]any)
+	fmt.Println(m)
+	fmt.Println(decoded)
+
+	if  !ok {
+		fmt.Printf("Error decoding %s: %v\n",TorrentFileName, err)
+        return nil, err
+	}
+
+
+	AnnounceUrl := m["announce"]
+
+
+
+	fmt.Print(AnnounceUrl)
 
 	return nil, nil
 
