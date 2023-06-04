@@ -5,7 +5,25 @@ import (
 	"os"
 	"time"
 	"sync"
+	"path"
+	
 )
+
+func parseTorrent(TorrentFileName string) (*Torrent, error) {
+	content, err := os.ReadFile(TorrentFileName)
+	if err!= nil {
+		fmt.Printf("Error reading %s: %v\n",TorrentFileName, err)
+        return nil, err
+    }
+
+	decoded, _ := decode(content)
+
+	fmt.Print(decoded)
+
+	return nil, nil
+
+
+}
 
 func MonitorDirectory(dir string, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -21,7 +39,6 @@ func MonitorDirectory(dir string, wg *sync.WaitGroup) {
 		fmt.Println("Directory created")
     }
 
-
 	for {
 		files, err := os.ReadDir(dir)
 		if err!= nil {
@@ -31,11 +48,10 @@ func MonitorDirectory(dir string, wg *sync.WaitGroup) {
 	
 		for _, file := range files {
 			fmt.Println("New File:", file.Name())
+			parseTorrent(path.Join(dir, file.Name()))
 		}
 		time.Sleep(time.Second * 10)
 	}
-
-
 }
 
 
