@@ -6,37 +6,28 @@ import (
 	"time"
 	"sync"
 	"path"
-	
 )
 
-func parseTorrent(TorrentFileName string) (*Torrent, error) {
+
+
+func ParseTorrent(TorrentFileName string) (*Torrent, error) {
 	content, err := os.ReadFile(TorrentFileName)
-	if err!= nil {
+	if err != nil {
 		fmt.Printf("Error reading %s: %v\n",TorrentFileName, err)
         return nil, err
     }
-
-
 	decoded, _ := decode(content)
-	m, ok:= decoded.(map[string]any)
-	fmt.Println(m)
-	fmt.Println(decoded)
 
-	if  !ok {
-		fmt.Printf("Error decoding %s: %v\n",TorrentFileName, err)
-        return nil, err
-	}
+	decoded_as_map, ok := decoded.(map[any]any)
+		if !ok {
+			fmt.Println("error decoding as map")
+			return nil, fmt.Errorf("%s is not a map",TorrentFileName)
+		}
 
-
-	AnnounceUrl := m["announce"]
-
-
-
-	fmt.Print(AnnounceUrl)
+	res := GetAnnounceUrl(decoded_as_map)
+	fmt.Println(res)
 
 	return nil, nil
-
-
 }
 
 func MonitorDirectory(dir string, wg *sync.WaitGroup) {
@@ -62,18 +53,11 @@ func MonitorDirectory(dir string, wg *sync.WaitGroup) {
 	
 		for _, file := range files {
 			fmt.Println("New File:", file.Name())
-			parseTorrent(path.Join(dir, file.Name()))
+			ParseTorrent(path.Join(dir, file.Name()))
 		}
 		time.Sleep(time.Second * 10)
 	}
 }
-
-
-
-
-
-
-
 
 func main() {
 	var wg sync.WaitGroup
