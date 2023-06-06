@@ -6,8 +6,23 @@ import (
 	"time"
 	"sync"
 	"path"
+	"gorm.io/gorm"
+	"gorm.io/driver/sqlite"
 )
 
+func handleTorrent(t *Torrent){
+	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	if err != nil {
+	  panic("failed to connect database")
+	}
+  
+	// Migrate the schema
+	db.AutoMigrate(&Torrent{})
+  
+	// Create
+	db.Create(t)
+  
+}
 
 
 func ParseTorrent(TorrentFileName string) (*Torrent, error) {
@@ -18,25 +33,13 @@ func ParseTorrent(TorrentFileName string) (*Torrent, error) {
     }
 	decoded, _ := decode(content)
 
-	decoded_as_map, ok := decoded.(map[any]any)
-		if !ok {
-			fmt.Println("error decoding as map")
-			return nil, fmt.Errorf("%s is not a map",TorrentFileName)
-		}
+	t, err := ParseTorrentFromBencoded(decoded)
 
-	info_entry, ok := decoded_as_map["info"].(map[any]any)
-	if !ok {
-		return nil, fmt.Errorf("%s does not have info entry",TorrentFileName)	
-	}
+	if err!= nil {
+        return nil, err
+    }
 
-
-	Size, err := GetSize(info_entry)
-	// AnnounceUrl := GetAnnounceUrl(decoded_as_map)
-	// InfoHash := GetInfoHash(decoded_as_map)
-
-	fmt.Println(Size)
-
-	return nil, nil
+	return t, nil
 }
 
 func MoveFile(oldDir string, newDir string) error {
@@ -65,7 +68,18 @@ func MonitorDirectory(listenIn string, moveTo string, erroredTorrents string, wg
 	_, err = os.Stat(moveTo)
 	if os.IsNotExist(err) {
 		fmt.Println("Moving-to directiory does not exist, creating...")
-		err := os.MkdirAll(listenIn, os.ModePerm)
+		err := os.MkdirAll(moveTo, os.ModePerm)
+        if err!= nil {
+            fmt.Println(err)
+            return
+        }
+		fmt.Println("Directory created")
+    }
+
+	_, err = os.Stat(erroredTorrents)
+	if os.IsNotExist(err) {
+		fmt.Println("Errored Torrent directiory does not exist, creating...")
+		err := os.MkdirAll(erroredTorrents, os.ModePerm)
         if err!= nil {
             fmt.Println(err)
             return
@@ -83,12 +97,15 @@ func MonitorDirectory(listenIn string, moveTo string, erroredTorrents string, wg
 		for _, file := range files {
 			old_path := path.Join(listenIn, file.Name())
 			fmt.Println("New File:", file.Name())
-			_, err := ParseTorrent(old_path)
-
+			t, err := ParseTorrent(old_path)
+			handleTorrent(t)
 			if err!= nil {
 				error_path := path.Join(erroredTorrents, file.Name())
 				fmt.Println("Error parsing torrent file:", err)
 				err = MoveFile(old_path, error_path)
+				if err!= nil {
+					fmt.Println("Error moving file:", err)
+                }
 
             } else {
 				new_path := path.Join(moveTo, file.Name())
@@ -106,7 +123,7 @@ func MonitorDirectory(listenIn string, moveTo string, erroredTorrents string, wg
 func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go MonitorDirectory("NewTorrentFiles", "AddedTorrentFiles", "ErrorTorrents", &wg)
+	go MonitorDirectory("NewTorrentFiles", "AddedTorrentFiles", "ErroredTorrents", &wg)
 	wg.Wait()
 
 }
