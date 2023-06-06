@@ -23,7 +23,7 @@ type Torrent struct {
 	PieceCount  uint
 }
 
-func GetInfoHash(info_entry map[string]any) []byte {
+func GetInfoHash(info_entry map[any]any) []byte {
 	hash := sha1.New()
 	// Write the data to the hash object
 	hash.Write(encode(info_entry))
@@ -37,7 +37,7 @@ func GetAnnounceUrl(decoded map[any]any) string {
 	return string(AnnounceUrl.([]byte))
 }
 
-func GetSize(info_entry map[string]any) (uint, error) {
+func GetSize(info_entry map[any]any) (int, error) {
 	value, ok := info_entry["files"]
 
 	if ok {
@@ -46,33 +46,33 @@ func GetSize(info_entry map[string]any) (uint, error) {
 			return 0, fmt.Errorf("invalid files entry")
 			}
 
-		size := uint(0)
+		size := int(0)
 
 		for _, file := range files {
-			file_as_dict, ok := file.(map[string]any)
+			file_as_dict, ok := file.(map[any]any)
 			if !ok {
 				return 0, fmt.Errorf("invalid files entry")
 			}
-			size += file_as_dict["length"].(uint)
+			size += file_as_dict["length"].(int)
 		}
 		return size, nil
 	}
 
-	return info_entry["length"].(uint), nil
+	return info_entry["length"].(int), nil
 
 }
 
-// func GetName(info_entry map[string]any) (string, error) {
+// func GetName(info_entry map[any]any) (string, error) {
 // }
 
-// func GetPiecesData(info_entry map[string]any) ([]byte, error) {
+// func GetPiecesData(info_entry map[any]any) ([]byte, error) {
 // }
 
-// func GetPiecesLength(info_entry map[string]any) (uint, error){
+// func GetPiecesLength(info_entry map[any]any) (uint, error){
 
 // }
 
-// func GetPieceCount(info_entry map[string]any) (uint, error){
+// func GetPieceCount(info_entry map[any]any) (uint, error){
 
 // }
 
